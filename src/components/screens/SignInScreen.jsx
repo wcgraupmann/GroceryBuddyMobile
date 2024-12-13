@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, TextInput, Button, Text, StyleSheet } from "react-native";
 import * as SecureStore from "expo-secure-store"; // Secure storage
 
-const SignInScreen = ({ navigation }) => {
+const SignInScreen = ({ navigation, setIsAuthenticated }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,7 +25,10 @@ const SignInScreen = ({ navigation }) => {
         await SecureStore.setItemAsync("jwt_token", token);
 
         // Update authentication status and redirect to main screen
-        navigation.navigate("Landing"); // Or any screen in the main app
+        setIsAuthenticated(true);
+        // navigation.navigate("Home", {
+        //   screen: "Landing", // Screen inside MainStack
+        // }); // Or any screen in the main app
       } else {
         setError("Invalid email or password.");
       }

@@ -3,46 +3,66 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator } from "@react-navigation/stack";
 import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import * as SecureStore from "expo-secure-store"; // Secure storage
+import * as SecureStore from "expo-secure-store";
+import jwtDecode from "jwt-decode"; // To decode the JWT token
 import { useState, useEffect } from "react";
-import LandingScreen from "./src/components/screens/LandingScreen"; // Your main screen
-import SignInScreen from "./src/components/screens/SignInScreen"; // Your sign-in screen
-import GroceryListScreen from "./src/components/screens/GroceryListScreen"; // Your grocery list screen
-import { TouchableOpacity } from "react-native"; // Import TouchableOpacity
+import LandingScreen from "./src/components/screens/LandingScreen";
+import SignInScreen from "./src/components/screens/SignInScreen";
+import GroceryListScreen from "./src/components/screens/GroceryListScreen";
+import { TouchableOpacity } from "react-native";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
-// Main app stack (after login)
-const MainStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Landing" component={LandingScreen} />
-    <Stack.Screen name="GroceryList" component={GroceryListScreen} />
-    {/* Add other screens if needed */}
-  </Stack.Navigator>
-);
-
-// Authentication stack (sign-in screen only)
-const AuthStack = () => (
-  <Stack.Navigator>
-    <Stack.Screen name="SignIn" component={SignInScreen} />
-    {/* Add more screens as needed */}
-  </Stack.Navigator>
-);
-
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Main app stack (after login)
+  const MainStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Landing" component={LandingScreen} />
+      <Stack.Screen name="GroceryList" component={GroceryListScreen} />
+    </Stack.Navigator>
+  );
+
+  // Authentication stack (sign-in screen only)
+  const AuthStack = () => (
+    <Stack.Navigator>
+      <Stack.Screen name="SignIn">
+        {() => <SignInScreen setIsAuthenticated={setIsAuthenticated} />}
+      </Stack.Screen>
+    </Stack.Navigator>
+  );
+
   useEffect(() => {
-    // Check if user is already authenticated by checking the token
+    // Check if user is already authenticated and token is valid
     const checkAuth = async () => {
       const token = await SecureStore.getItemAsync("jwt_token");
       if (token) {
-        setIsAuthenticated(true); // If token exists, user is authenticated
+        try {
+          const decoded = jwtDecode(token); // Decode the JWT token
+          const currentTime = Math.floor(Date.now() / 1000); // Current time in seconds
+          if (decoded.exp > currentTime) {
+            setIsAuthenticated(true);
+            scheduleLogout(decoded.exp - currentTime); // Schedule automatic logout
+          } else {
+            await SecureStore.deleteItemAsync("jwt_token"); // Remove expired token
+          }
+        } catch (error) {
+          console.error("Invalid token format", error);
+          await SecureStore.deleteItemAsync("jwt_token"); // Remove invalid token
+        }
       }
     };
     checkAuth();
   }, []);
+
+  const scheduleLogout = (timeUntilExpiration) => {
+    setTimeout(async () => {
+      await SecureStore.deleteItemAsync("jwt_token"); // Delete the JWT token
+      setIsAuthenticated(false); // Log out the user
+    }, timeUntilExpiration * 1000); // Convert seconds to milliseconds
+  };
 
   const handleLogout = async () => {
     await SecureStore.deleteItemAsync("jwt_token"); // Delete the JWT token
@@ -52,7 +72,6 @@ export default function App() {
   return (
     <NavigationContainer>
       {isAuthenticated ? (
-        // Show main app screen if authenticated
         <Tab.Navigator
           screenOptions={({ route }) => ({
             headerShown: false,
@@ -77,7 +96,7 @@ export default function App() {
           {/* Logout button */}
           <Tab.Screen
             name="Logout"
-            component={LandingScreen} // This is just a placeholder, logout doesn't require a screen
+            component={LandingScreen} // Placeholder, logout doesn't require a screen
             options={{
               tabBarButton: () => (
                 <TouchableOpacity onPress={handleLogout}>
@@ -89,8 +108,7 @@ export default function App() {
           />
         </Tab.Navigator>
       ) : (
-        // Show sign-in screen if not authenticated
-        <AuthStack />
+        <AuthStack setIsAuthenticated={setIsAuthenticated} />
       )}
       <StatusBar style="auto" />
     </NavigationContainer>
