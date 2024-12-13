@@ -49,7 +49,7 @@ export default function App() {
             await SecureStore.deleteItemAsync("jwt_token"); // Remove expired token
           }
         } catch (error) {
-          console.error("Invalid token format", error);
+          // console.error("Invalid token format", error);
           await SecureStore.deleteItemAsync("jwt_token"); // Remove invalid token
         }
       }

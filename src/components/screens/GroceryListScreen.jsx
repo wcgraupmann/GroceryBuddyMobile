@@ -6,26 +6,28 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  Button, // Import Button
+  RefreshControl, // Import RefreshControl
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context"; // Import SafeAreaView
+import { SafeAreaView } from "react-native-safe-area-context";
+import { FAB } from "react-native-paper"; // Import FAB component
+import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Import icon
 
 const GroceryListScreen = () => {
   const [groceryList, setGroceryList] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [touchedItems, setTouchedItems] = useState({}); // Track touched items
+  const [isRefreshing, setIsRefreshing] = useState(false); // Refreshing state
+  const [touchedItems, setTouchedItems] = useState({});
   const navigation = useNavigation();
 
   useEffect(() => {
-    // Call the function to fetch the grocery list when the component mounts
     fetchGroceryList();
   }, []);
 
   const fetchGroceryList = async () => {
     try {
-      const token = await SecureStore.getItemAsync("jwt_token"); // Retrieve the token
+      const token = await SecureStore.getItemAsync("jwt_token");
 
       if (!token) {
         console.log("Token expired or not found. Redirecting to login screen.");
@@ -33,14 +35,12 @@ const GroceryListScreen = () => {
         return;
       }
 
-      // Make the API request to fetch the grocery list
       const response = await fetch("http://192.168.2.63:3000/groceryList", {
         headers: {
-          Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+          Authorization: `Bearer ${token}`,
         },
       });
 
-      // If the request is successful, store the grocery list in state
       if (response.status === 200) {
         const data = await response.json();
         const { groceryList } = data;
@@ -51,17 +51,97 @@ const GroceryListScreen = () => {
     } catch (error) {
       console.error("Error fetching grocery list:", error);
     } finally {
-      setLoading(false); // Stop loading animation
+      setLoading(false);
+      setIsRefreshing(false); // Stop refreshing indicator
     }
+  };
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    fetchGroceryList();
   };
 
   const handleItemPress = (category, itemId) => {
     setTouchedItems((prevTouchedItems) => {
       const newTouchedItems = { ...prevTouchedItems };
-      const key = `${category}-${itemId}`; // Unique key for each item
-      newTouchedItems[key] = !newTouchedItems[key]; // Toggle the touched state
+      const key = `${category}-${itemId}`;
+      newTouchedItems[key] = !newTouchedItems[key];
       return newTouchedItems;
     });
+  };
+
+  const removeItemFromBackend = async (item) => {
+    try {
+      console.log("itemId:", item);
+      const token = await SecureStore.getItemAsync("jwt_token");
+
+      if (!token) {
+        console.log("Token expired or not found. Redirecting to login screen.");
+        navigation.navigate("SignIn");
+        return;
+      }
+
+      const response = await fetch("http://192.168.2.63:3000/itemCheckout", {
+        method: "delete",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ itemId: item.itemId, category: item.category }),
+      });
+
+      if (response.status === 200) {
+        // alert("Selected item deleted.");
+        // fetchGroceryList(); // Refresh the list after deletion
+      } else {
+        console.log("Error deleting selected items:", response.status);
+      }
+    } catch (error) {
+      console.error("Error deleting selected items:", error);
+    }
+  };
+
+  // Function to delete selected items
+  const removeSelectedItemsFromList = async () => {
+    try {
+      const selectedItems = Object.keys(touchedItems)
+        .filter((key) => touchedItems[key])
+        .map((key) => {
+          const [category, itemId] = key.split("-");
+          return { category, itemId };
+        });
+
+      if (selectedItems.length === 0) {
+        // alert("No items selected.");
+        // TODO: change FAB to green once an item is selected
+        return;
+      }
+
+      console.log(selectedItems);
+
+      selectedItems.forEach((item, category) => {
+        removeItemFromBackend(item, category);
+      });
+      fetchGroceryList(); // Refresh the list after deletion
+
+      //   const response = await fetch("http://192.168.2.63:3000/deleteItems", {
+      //     method: "POST",
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //       Authorization: `Bearer ${token}`,
+      //     },
+      //     body: JSON.stringify({ items: selectedItems }),
+      //   });
+
+      //   if (response.status === 200) {
+      //     alert("Selected items deleted.");
+      //     fetchGroceryList(); // Refresh the list after deletion
+      //   } else {
+      //     console.log("Error deleting selected items:", response.status);
+      //   }
+    } catch (error) {
+      console.error("Error deleting selected items:", error);
+    }
   };
 
   if (loading) {
@@ -80,7 +160,6 @@ const GroceryListScreen = () => {
     );
   }
 
-  // Render a section for each grocery category
   const renderCategory = ({ item: { category, items } }) => {
     if (!items || items.length === 0) return null;
 
@@ -91,16 +170,15 @@ const GroceryListScreen = () => {
           data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => {
-            const isTouched = touchedItems[`${category}-${item.id}`]; // Check if the item was touched
+            const isTouched = touchedItems[`${category}-${item.id}`];
             return (
               <TouchableOpacity
-                onPress={() => handleItemPress(category, item.id)} // Handle touch event
+                onPress={() => handleItemPress(category, item.id)}
                 style={[
                   styles.itemContainer,
-                  { backgroundColor: isTouched ? "green" : "#f1f1f1" }, // Toggle color based on touched state
+                  { backgroundColor: isTouched ? "green" : "#f1f1f1" },
                 ]}
               >
-                {/* Ensure that item text is inside the Text component */}
                 <Text style={isTouched ? styles.touchedItemText : null}>
                   {item.item}
                 </Text>
@@ -112,7 +190,6 @@ const GroceryListScreen = () => {
     );
   };
 
-  // Convert groceryList object into an array of category objects
   const groceryListData = Object.keys(groceryList).map((category) => ({
     category,
     items: groceryList[category],
@@ -120,8 +197,6 @@ const GroceryListScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Wrap in SafeAreaView */}
-      {/* Header Section */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Grocery List</Text>
       </View>
@@ -130,6 +205,15 @@ const GroceryListScreen = () => {
         keyExtractor={(item) => item.category}
         renderItem={renderCategory}
         contentContainerStyle={styles.scrollContainer}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
+        }
+      />
+      {/* Floating Action Button */}
+      <FAB
+        style={styles.fab}
+        icon={() => <Icon name="check" size={24} color="white" />}
+        onPress={removeSelectedItemsFromList}
       />
     </SafeAreaView>
   );
@@ -177,12 +261,18 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   touchedItemText: {
-    color: "#fff", // White text when the item is touched
+    color: "#fff",
   },
   centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  fab: {
+    position: "absolute",
+    bottom: 20,
+    right: 20,
+    backgroundColor: "#6200ee",
   },
 });
 
