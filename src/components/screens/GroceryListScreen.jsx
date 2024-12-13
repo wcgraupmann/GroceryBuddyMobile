@@ -71,7 +71,7 @@ const GroceryListScreen = () => {
     });
   };
 
-  const removeItemFromBackend = async (item) => {
+  const removeItemFromBackend = async (item, dateId) => {
     try {
       console.log("itemId:", item);
       const token = await SecureStore.getItemAsync("jwt_token");
@@ -88,11 +88,17 @@ const GroceryListScreen = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ itemId: item.itemId, category: item.category }),
+        body: JSON.stringify({
+          itemId: item.itemId,
+          category: item.category,
+          dateId,
+        }),
       });
 
       const data = await response.json();
-      console.log("data", data);
+      console.log(data);
+
+      // const data = await response.json();
 
       // if (response.status === 200) {
       //   // Successful checkout
@@ -105,26 +111,30 @@ const GroceryListScreen = () => {
   };
 
   const removeSelectedItemsFromList = async () => {
-    try {
-      const selectedItems = Object.keys(touchedItems)
-        .filter((key) => touchedItems[key])
-        .map((key) => {
-          const [category, itemId] = key.split("-");
-          return { category, itemId };
-        });
-
-      if (selectedItems.length === 0) {
-        return;
-      }
-
-      selectedItems.forEach((item) => {
-        removeItemFromBackend(item);
+    // try {
+    const selectedItems = Object.keys(touchedItems)
+      .filter((key) => touchedItems[key])
+      .map((key) => {
+        const [category, itemId] = key.split("-");
+        return { category, itemId };
       });
 
-      fetchGroceryList();
-    } catch (error) {
-      console.error("Error deleting selected items:", error);
+    if (selectedItems.length === 0) {
+      return;
     }
+
+    console.log("selectedItems", selectedItems);
+
+    const today = new Date();
+    const day = today.getDate();
+    const month = today.getMonth() + 1;
+    const year = today.getFullYear();
+    const dateId = `${month} ${day} ${year}`;
+
+    selectedItems.forEach(async (item) => {
+      await removeItemFromBackend(item, dateId);
+    });
+    fetchGroceryList();
   };
 
   if (loading) {
