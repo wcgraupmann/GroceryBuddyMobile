@@ -6,18 +6,19 @@ import {
   StyleSheet,
   ActivityIndicator,
   TouchableOpacity,
-  RefreshControl, // Import RefreshControl
+  RefreshControl,
 } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { FAB } from "react-native-paper"; // Import FAB component
-import Icon from "react-native-vector-icons/MaterialCommunityIcons"; // Import icon
+import { FAB } from "react-native-paper";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import Toast from "react-native-toast-message"; // Import Toast
 
 const GroceryListScreen = () => {
   const [groceryList, setGroceryList] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false); // Refreshing state
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [touchedItems, setTouchedItems] = useState({});
   const navigation = useNavigation();
 
@@ -52,7 +53,7 @@ const GroceryListScreen = () => {
       console.error("Error fetching grocery list:", error);
     } finally {
       setLoading(false);
-      setIsRefreshing(false); // Stop refreshing indicator
+      setIsRefreshing(false);
     }
   };
 
@@ -90,18 +91,19 @@ const GroceryListScreen = () => {
         body: JSON.stringify({ itemId: item.itemId, category: item.category }),
       });
 
-      if (response.status === 200) {
-        // alert("Selected item deleted.");
-        // fetchGroceryList(); // Refresh the list after deletion
-      } else {
-        console.log("Error deleting selected items:", response.status);
-      }
+      const data = await response.json();
+      console.log("data", data);
+
+      // if (response.status === 200) {
+      //   // Successful checkout
+      // } else {
+      //   console.log("Error deleting selected items:", response.status);
+      // }
     } catch (error) {
       console.error("Error deleting selected items:", error);
     }
   };
 
-  // Function to delete selected items
   const removeSelectedItemsFromList = async () => {
     try {
       const selectedItems = Object.keys(touchedItems)
@@ -112,33 +114,14 @@ const GroceryListScreen = () => {
         });
 
       if (selectedItems.length === 0) {
-        // alert("No items selected.");
-        // TODO: change FAB to green once an item is selected
         return;
       }
 
-      console.log(selectedItems);
-
-      selectedItems.forEach((item, category) => {
-        removeItemFromBackend(item, category);
+      selectedItems.forEach((item) => {
+        removeItemFromBackend(item);
       });
-      fetchGroceryList(); // Refresh the list after deletion
 
-      //   const response = await fetch("http://192.168.2.63:3000/deleteItems", {
-      //     method: "POST",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //       Authorization: `Bearer ${token}`,
-      //     },
-      //     body: JSON.stringify({ items: selectedItems }),
-      //   });
-
-      //   if (response.status === 200) {
-      //     alert("Selected items deleted.");
-      //     fetchGroceryList(); // Refresh the list after deletion
-      //   } else {
-      //     console.log("Error deleting selected items:", response.status);
-      //   }
+      fetchGroceryList();
     } catch (error) {
       console.error("Error deleting selected items:", error);
     }
@@ -152,10 +135,15 @@ const GroceryListScreen = () => {
     );
   }
 
-  if (!groceryList) {
+  if (
+    !groceryList ||
+    Object.keys(groceryList).every(
+      (category) => groceryList[category].length === 0
+    )
+  ) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text>No grocery list available. Please try again later.</Text>
+        <Text style={styles.emptyCartText}>Your cart is empty.</Text>
       </SafeAreaView>
     );
   }
@@ -209,7 +197,6 @@ const GroceryListScreen = () => {
           <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
         }
       />
-      {/* Floating Action Button */}
       <FAB
         style={styles.fab}
         icon={() => <Icon name="check" size={24} color="white" />}
@@ -273,6 +260,12 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 20,
     backgroundColor: "#6200ee",
+  },
+  emptyCartText: {
+    fontSize: 18,
+    color: "#6200ee",
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });
 
