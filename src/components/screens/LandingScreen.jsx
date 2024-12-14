@@ -58,7 +58,13 @@ const LandingScreen = ({ navigation }) => {
           style={styles.button}
           onPress={() => navigation.navigate("GroceryList")}
         >
-          <Text style={styles.buttonText}>Go to Grocery List</Text>
+          <Text style={styles.buttonText}>Grocery List</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("TransactionScreen")}
+        >
+          <Text style={styles.buttonText}>Previous Transactions</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -97,6 +103,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 30,
     borderRadius: 8,
+    marginTop: 10,
   },
   buttonText: {
     color: "#fff",

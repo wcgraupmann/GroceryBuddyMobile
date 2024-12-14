@@ -9,6 +9,7 @@ import { useState, useEffect, useContext } from "react";
 import LandingScreen from "./src/components/screens/LandingScreen";
 import SignInScreen from "./src/components/screens/SignInScreen";
 import GroceryListScreen from "./src/components/screens/GroceryListScreen";
+import TransactionScreen from "./src/components/screens/TransactionScreen";
 import { TouchableOpacity } from "react-native";
 import { GroupContext, GroupProvider } from "./src/Context/GroupContext";
 
@@ -26,6 +27,7 @@ export default function App() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Landing" component={LandingScreen} />
       <Stack.Screen name="GroceryList" component={GroceryListScreen} />
+      <Stack.Screen name="TransactionScreen" component={TransactionScreen} />
     </Stack.Navigator>
   );
 
@@ -37,39 +39,6 @@ export default function App() {
       </Stack.Screen>
     </Stack.Navigator>
   );
-
-  // useEffect(() => {
-  //   const getGroupIds = async () => {
-  //     try {
-  //       const token = await SecureStore.getItemAsync("jwt_token");
-  //       if (!token) {
-  //         console.log(
-  //           "Token expired or not found. Redirecting to login screen."
-  //         );
-  //         return;
-  //       }
-  //       const response = await fetch("http://192.168.2.63:3000/groupIds", {
-  //         method: "get",
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       });
-  //       if (!response.ok) {
-  //         throw new Error("Failed to fetch user data");
-  //       }
-  //       const data = await response.json();
-  //       const { groupIds } = data;
-  //       setGroupIds(groupIds);
-  //       console.log("fetched groupIds", groupIds);
-  //     } catch (error) {
-  //       console.error("Error signing in:", error.message);
-  //     }
-  //   };
-  //   if (isAuthenticated) {
-  //     fetchGroupIds();
-  //   }
-  //   // getGroupIds();
-  // }, [isAuthenticated, setGroupIds]);
 
   useEffect(() => {
     // Check if user is already authenticated and token is valid
