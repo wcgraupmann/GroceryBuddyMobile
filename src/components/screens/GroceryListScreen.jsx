@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { FAB } from "react-native-paper";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import Toast from "react-native-toast-message"; // Import Toast
+import { GroupContext } from "../../Context/GroupContext";
 
 const GroceryListScreen = () => {
   const [groceryList, setGroceryList] = useState(null);
@@ -21,9 +22,22 @@ const GroceryListScreen = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [touchedItems, setTouchedItems] = useState({});
   const navigation = useNavigation();
+  const { groupIds, setGroupIds } = useContext(GroupContext);
 
   useEffect(() => {
     fetchGroceryList();
+  }, []);
+
+  useEffect(() => {
+    fetchGroceryList();
+
+    // Define the interval to refetch the grocery list every 10 seconds
+    const interval = setInterval(() => {
+      fetchGroceryList();
+    }, 10000); // 10 seconds
+
+    // Cleanup interval when the component unmounts
+    return () => clearInterval(interval);
   }, []);
 
   const fetchGroceryList = async () => {
@@ -37,9 +51,12 @@ const GroceryListScreen = () => {
       }
 
       const response = await fetch("http://192.168.2.63:3000/groceryList", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ groupId: groupIds[0] }),
       });
 
       if (response.status === 200) {
@@ -92,26 +109,21 @@ const GroceryListScreen = () => {
           itemId: item.itemId,
           category: item.category,
           dateId,
+          groupId: groupIds[0],
         }),
       });
 
-      const data = await response.json();
-      console.log(data);
-
-      // const data = await response.json();
-
-      // if (response.status === 200) {
-      //   // Successful checkout
-      // } else {
-      //   console.log("Error deleting selected items:", response.status);
-      // }
+      if (response.status === 200) {
+        console.log("Item removed successfully");
+      } else {
+        console.log("Error deleting selected items:", response.status);
+      }
     } catch (error) {
       console.error("Error deleting selected items:", error);
     }
   };
 
   const removeSelectedItemsFromList = async () => {
-    // try {
     const selectedItems = Object.keys(touchedItems)
       .filter((key) => touchedItems[key])
       .map((key) => {
@@ -134,6 +146,9 @@ const GroceryListScreen = () => {
     selectedItems.forEach(async (item) => {
       await removeItemFromBackend(item, dateId);
     });
+    // Clear the touched items state after deleting the items
+    setTouchedItems({});
+    // Fetch the updated grocery list
     fetchGroceryList();
   };
 
@@ -141,19 +156,6 @@ const GroceryListScreen = () => {
     return (
       <SafeAreaView style={styles.centered}>
         <ActivityIndicator size="large" color="#6200ee" />
-      </SafeAreaView>
-    );
-  }
-
-  if (
-    !groceryList ||
-    Object.keys(groceryList).every(
-      (category) => groceryList[category].length === 0
-    )
-  ) {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <Text style={styles.emptyCartText}>Your cart is empty.</Text>
       </SafeAreaView>
     );
   }
@@ -178,7 +180,7 @@ const GroceryListScreen = () => {
                 ]}
               >
                 <Text style={isTouched ? styles.touchedItemText : null}>
-                  {item.item}
+                  {item.item.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             );
@@ -198,19 +200,35 @@ const GroceryListScreen = () => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>My Grocery List</Text>
       </View>
-      <FlatList
-        data={groceryListData}
-        keyExtractor={(item) => item.category}
-        renderItem={renderCategory}
-        contentContainerStyle={styles.scrollContainer}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} />
-        }
-      />
+
+      {/* Check if grocery list is empty */}
+      {groceryList &&
+      Object.keys(groceryList).every(
+        (category) => groceryList[category].length === 0
+      ) ? (
+        <View style={styles.centered}>
+          <Text style={styles.emptyCartText}>Your cart is empty.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={groceryListData}
+          keyExtractor={(item) => item.category}
+          renderItem={renderCategory}
+          contentContainerStyle={styles.scrollContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+            />
+          }
+        />
+      )}
+
       <FAB
         style={styles.fab}
         icon={() => <Icon name="check" size={24} color="white" />}
         onPress={removeSelectedItemsFromList}
+        disabled={Object.values(touchedItems).every((isTouched) => !isTouched)}
       />
     </SafeAreaView>
   );
