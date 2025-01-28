@@ -50,7 +50,7 @@ const GroceryListScreen = () => {
         return;
       }
 
-      const response = await fetch("http://192.168.2.63:3000/groceryList", {
+      const response = await fetch("http://192.168.1.27:3000/groceryList", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -99,7 +99,7 @@ const GroceryListScreen = () => {
         return;
       }
 
-      const response = await fetch("http://192.168.2.63:3000/itemCheckout", {
+      const response = await fetch("http://192.168.1.27:3000/itemCheckout", {
         method: "delete",
         headers: {
           "Content-Type": "application/json",

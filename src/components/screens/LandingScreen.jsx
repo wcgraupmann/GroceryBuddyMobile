@@ -1,44 +1,45 @@
 import { React, useContext, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context"; // Import SafeAreaView
 import { GroupContext } from "../../Context/GroupContext";
 import * as SecureStore from "expo-secure-store";
+// import logo from "gb-mobile/src/assets/GroceryBuddyLogo.jpg";
 
 const LandingScreen = ({ navigation }) => {
-  const { groupIds, setGroupIds } = useContext(GroupContext);
+  const { groupIds } = useContext(GroupContext);
 
-  useEffect(() => {
-    const getGroupIds = async () => {
-      try {
-        const token = await SecureStore.getItemAsync("jwt_token");
-        if (!token) {
-          console.log(
-            "Token expired or not found. Redirecting to login screen."
-          );
-          return;
-        }
-        const response = await fetch("http://192.168.2.63:3000/groupIds", {
-          method: "get",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          throw new Error("Failed to fetch user data");
-        }
-        const data = await response.json();
-        const { groupIds } = data;
-        setGroupIds(groupIds);
-        console.log("fetched groupIds", groupIds);
-      } catch (error) {
-        console.error("Error signing in:", error.message);
-      }
-    };
+  // useEffect(() => {
+  //   const getGroupIds = async () => {
+  //     try {
+  //       const token = await SecureStore.getItemAsync("jwt_token");
+  //       if (!token) {
+  //         console.log(
+  //           "Token expired or not found. Redirecting to login screen."
+  //         );
+  //         return;
+  //       }
+  //       const response = await fetch("http://192.168.2.63:3000/groupIds", {
+  //         method: "get",
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
+  //       if (!response.ok) {
+  //         throw new Error("Failed to fetch user data");
+  //       }
+  //       const data = await response.json();
+  //       const { groupIds } = data;
+  //       setGroupIds(groupIds);
+  //       console.log("fetched groupIds", groupIds);
+  //     } catch (error) {
+  //       console.error("Error signing in:", error.message);
+  //     }
+  //   };
 
-    getGroupIds();
+  //   getGroupIds();
 
-    // getGroupIds();
-  }, [setGroupIds]);
+  //   // getGroupIds();
+  // }, [setGroupIds]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -49,9 +50,10 @@ const LandingScreen = ({ navigation }) => {
 
       {/* Main Content */}
       <View style={styles.content}>
-        <Text style={styles.description}>
+        {/* <Text style={styles.description}>
           This is the landing page of the grocery app.
-        </Text>
+        </Text> */}
+        <Image />
 
         {/* Example Button for Navigation */}
         <TouchableOpacity

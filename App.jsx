@@ -18,9 +18,11 @@ const Stack = createStackNavigator();
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  // const { setGroupIds } = useContext(GroupContext);
 
-  console.log("GroupContext value:", useContext(GroupContext));
+  // const { setGroupIds } = useContext(GroupContext);
+  // console.log("GroupContext:", useContext(GroupContext)); // Add this
+  // const groupContext = useContext(GroupContext);
+  // const setGroupIds = groupContext?.setGroupIds;
 
   // Main app stack (after login)
   const MainStack = () => (
